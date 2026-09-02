@@ -167,5 +167,23 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(hermes["skills"].get("trusted_project_dirs"), [])
 
 
+class BudgetTests(EndToEndTests):
+    def test_refuses_to_write_over_hermes_cap_and_warns_on_native_file(self):
+        cfg = self.home / ".hermes" / "config.yaml"
+        cfg.write_text(cfg.read_text() + "context_file_max_chars: 300\n")
+        (self.pkg / "AGENTS.md").write_text("# big\n" + ("x" * 400) + "\n")
+        # project scope: native AGENTS.md over cap is a warning, compile still succeeds
+        self.assertEqual(run("--home", str(self.home), "compile", "--package", str(self.pkg), "--target", "hermes"), 0)
+        # global scope: the block agentpack would write is over cap, so nothing is written
+        (self.pkg / "package.yaml").write_text(
+            "spec: 1\nname: big\nversion: 1.0.0\nscope: global\nsensitivity: personal\n"
+            "prompts:\n  contract: AGENTS.md\n  fragments:\n    - path: prompts/policy.md\n"
+        )
+        (self.pkg / "prompts").mkdir()
+        (self.pkg / "prompts" / "policy.md").write_text("# Policy\n" + ("y" * 400) + "\n")
+        self.assertEqual(run("--home", str(self.home), "compile", "--package", str(self.pkg), "--target", "hermes"), 1)
+        self.assertFalse((self.home / "AGENTS.md").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

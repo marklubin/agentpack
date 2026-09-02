@@ -40,6 +40,9 @@ Runtime surfaces the tool writes into, all inside `# agentpack:<pkg>` or
   `metadata.internal: true` keeps a skill in the repo but out of every runtime.
 - Sensitivity gates projection: `sensitive` and `highly-sensitive` packages are project
   scope only. Narrow `targets` in the package or in the host manifest; never widen.
+- Instruction files must fit the runtime. The compiler reads Hermes's `context_file_max_chars`
+  and Codex's `project_doc_max_bytes`, refuses to write a block that would be truncated, and
+  warns when a package's own `AGENTS.md` is over the cap.
 - Scheduled tasks are not part of a package. Hermes cron and the JOBS.md review rule are
   untouched by agentpack.
 - Pushing a package, creating a remote, or publishing the template needs Mark's say. Local
@@ -122,6 +125,8 @@ Manual by design. Sync never rebases or merges on its own.
 | Timer failed | `journalctl --user -u agentpack-sync.service -n 50`. Failures also route through `salinas-maintenance-failure@`. |
 | Pre-commit says agentpack not on PATH | The committing process lacks `~/.local/bin`. Records were not validated in that commit; the next sync validates them. |
 | Hermes does not see project skills | The repo must be in `skills.trusted_project_dirs`; sync adds it for project-scope packages. |
+| `over the N-char context-file cap ... Not written` | The block agentpack would write exceeds the runtime's cap (Hermes `context_file_max_chars`, Codex `project_doc_max_bytes`). Trim the fragments for that target or drop the target from them. Hermes gets a short entry-point fragment, not the full policy. |
+| `over the N-char cap; hermes truncates it` (warning) | A package's own `AGENTS.md` is larger than the runtime cap. The runtime silently truncates it in sessions inside that package. Trim the contract or raise the cap deliberately. |
 | A previous `.bak-agentpack` file | The tool keeps one rolling backup beside each runtime config it rewrites. Safe to delete. |
 
 ## Not in v1

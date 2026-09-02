@@ -76,6 +76,9 @@ Rules the tool holds itself to:
 - Output is byte-stable: a second run with no input change writes nothing.
 - Secrets never enter a package. Connection headers must be `${VAR}` references; each
   runtime gets them in its own spelling (`${VAR}`, `env_http_headers`, `{env:VAR}`).
+- Instruction files fit the runtime. It reads Hermes's `context_file_max_chars` and Codex's
+  `project_doc_max_bytes`, refuses to write a block that would be truncated, and warns when a
+  package's own `AGENTS.md` exceeds the cap.
 - Sync never rebases. A diverged checkout is reported and compiled as-is.
 - Every edit to a runtime config is validated by re-parsing before it is written, and a
   `.bak-agentpack` copy of the previous file sits beside it.

@@ -14,6 +14,7 @@ import yaml
 
 from . import TARGETS, AgentpackError, __version__
 from .backends import BACKENDS, Context
+from .budgets import check_budgets
 from .hostcfg import host_config_path, load_host_packages
 from .manifest import MANIFEST, Package, load_package
 from .markers import apply_block
@@ -101,6 +102,12 @@ def compile_package(
     ok = not mem_errors
     for target in wanted:
         plan = BACKENDS[target]().plan(pkg, ctx)
+        problems = check_budgets(pkg, target, plan, paths.home)
+        for level, msg in problems:
+            print(f"{level}: {pkg.name}: {msg}")
+        if any(level == "error" for level, _ in problems):
+            ok = False
+            continue
         prev = state.target(pkg.name, target)
         app = Applier(plan, prev, dry_run)
         try:
