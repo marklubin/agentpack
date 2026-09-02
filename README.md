@@ -38,6 +38,9 @@ cp systemd/agentpack-sync.* ~/.config/systemd/user/
 systemctl --user enable --now agentpack-sync.timer
 ```
 
+The unit is generic. Host-specific routing such as `OnFailure=` goes in a drop-in under
+`~/.config/systemd/user/agentpack-sync.service.d/`.
+
 ## The `agentpack` skill
 
 This repository is itself a global-scope package that ships one skill, `agentpack`, covering
