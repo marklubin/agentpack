@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Validate memory records and regenerate the derived index before every commit.
+# Enabled per clone with: git config core.hooksPath .githooks
+set -e
+root="$(git rev-parse --show-toplevel)"
+if ! command -v agentpack >/dev/null 2>&1; then
+  echo "pre-commit: agentpack is not on PATH; memory records were not validated" >&2
+  exit 0
+fi
+agentpack memory validate --package "$root"
+agentpack memory render --package "$root" --git-add

@@ -1,0 +1,15 @@
+[Unit]
+Description=agentpack: pull pinned package refs and compile into runtime surfaces
+After=network-online.target
+Wants=network-online.target
+OnFailure=salinas-maintenance-failure@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/agentpack/bin/agentpack sync
+ExecStartPost=-/usr/bin/systemctl --user start --no-block salinas-maintenance-recovery@%n.service
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+TimeoutStartSec=5min
+Nice=10
+StandardOutput=journal
+StandardError=journal

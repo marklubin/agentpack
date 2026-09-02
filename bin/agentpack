@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# agentpack CLI entry point. Needs python3 >= 3.11 and PyYAML.
+set -euo pipefail
+here="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+export PYTHONPATH="$here${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m agentpack "$@"

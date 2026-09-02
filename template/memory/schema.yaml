@@ -1,0 +1,13 @@
+# Memory ontology for this package. Records live under memory/<type>/<slug>.md,
+# one file each, with frontmatter naming the type and its fields.
+# agentpack renders this into the AGENTS.md memory contract and the `remember` skill.
+store: memory
+types: []
+# Example:
+# types:
+#   - name: fact
+#     description: A durable fact about the domain, with its source.
+#     fields: [subject, fact, source, observed_at]
+#     index: [fact, source, observed_at]
+#     write: agent          # agent | approval
+#     privacy: personal     # public | personal | sensitive | highly-sensitive

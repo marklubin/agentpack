@@ -1,0 +1,25 @@
+spec: 1
+name: __PACKAGE_NAME__
+version: 0.1.0
+scope: project            # project | global
+sensitivity: personal     # public | personal | sensitive | highly-sensitive
+targets: [hermes, claude, codex, opencode]
+
+prompts:
+  contract: AGENTS.md
+  # fragments are for global-scope packages only:
+  # fragments:
+  #   - path: prompts/policy.md
+  #     targets: [hermes, claude]
+
+skills:
+  dir: .agents/skills
+  include: all
+  exclude: []
+
+connections: []
+  # - connections/example.yaml
+
+memory:
+  schema: memory/schema.yaml
+  reads_from: []
