@@ -74,8 +74,8 @@ class EndToEndTests(unittest.TestCase):
         (self.pkg / "memory" / "fact").mkdir()
         (self.pkg / "memory" / "fact" / "one.md").write_text("---\ntype: fact\nsubject: s\nsource: src\nobserved_at: 2026-01-01\n---\nA fact.\n")
         (self.pkg / "connections" / "router.yaml").write_text("name: router\ntransport: http\nurl: https://new.test/mcp\nheaders:\n  X-Key: ${R_KEY}\ntools:\n  include: [a]\n")
-        m = (self.pkg / "package.yaml").read_text().replace("connections: []", "connections:\n  - connections/router.yaml")
-        (self.pkg / "package.yaml").write_text(m)
+        self.manifest = (self.pkg / "package.yaml").read_text().replace("connections: []", "connections:\n  - connections/router.yaml")
+        (self.pkg / "package.yaml").write_text(self.manifest)
         skill = self.pkg / ".agents" / "skills" / "hello"
         skill.mkdir()
         (skill / "SKILL.md").write_text("---\nname: hello\ndescription: Say hello.\n---\nhi\n")
@@ -111,7 +111,7 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(before, after)
 
         # drop the connection and the skill: prune removes exactly them, keeps the rest
-        (self.pkg / "package.yaml").write_text(m.replace("connections:\n  - connections/router.yaml", "connections: []"))
+        (self.pkg / "package.yaml").write_text(self.manifest.replace("connections:\n  - connections/router.yaml", "connections: []"))
         shutil.rmtree(skill)
         self.assertEqual(run("--home", str(self.home), "compile", "--package", str(self.pkg)), 0)
         hermes = yaml.safe_load((self.home / ".hermes" / "config.yaml").read_text())
@@ -123,7 +123,7 @@ class EndToEndTests(unittest.TestCase):
 
     def test_global_scope_adopts_legacy_block_and_unmanaged_tables(self):
         (self.pkg / "package.yaml").write_text(
-            "spec: 1\nname: demo\nversion: 1.0.0\nscope: global\nsensitivity: personal\n"
+            "spec: 1\nname: mission-control\nversion: 1.0.0\nscope: global\nsensitivity: personal\n"
             "prompts:\n  contract: AGENTS.md\n  fragments:\n    - path: prompts/policy.md\n"
             "skills:\n  dir: .agents/skills\nconnections:\n  - connections/router.yaml\n"
         )
@@ -131,7 +131,7 @@ class EndToEndTests(unittest.TestCase):
         (self.pkg / "prompts" / "policy.md").write_text("---\ntype: x\n---\n\n# Policy\nbe good\n")
         self.assertEqual(run("--home", str(self.home), "compile", "--package", str(self.pkg)), 0)
         claude_md = (self.home / ".claude" / "CLAUDE.md").read_text()
-        self.assertEqual(claude_md, "<!-- agentpack:demo:begin -->\n# Policy\nbe good\n<!-- agentpack:demo:end -->\n\n# Global Rules\nkeep\n")
+        self.assertEqual(claude_md, "<!-- agentpack:mission-control:begin -->\n# Policy\nbe good\n<!-- agentpack:mission-control:end -->\n\n# Global Rules\nkeep\n")
         self.assertTrue((self.home / ".claude" / "skills" / "hello" / "SKILL.md").is_file())
         cj = json.loads((self.home / ".claude.json").read_text())
         self.assertEqual(cj["mcpServers"]["router"]["url"], "https://new.test/mcp")
@@ -142,7 +142,7 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(codex["projects"]["/x"]["trust_level"], "trusted")
         self.assertEqual(codex_text.count("[mcp_servers.router]"), 1)
         hermes = yaml.safe_load((self.home / ".hermes" / "config.yaml").read_text())
-        self.assertIn(str(self.home / ".local/share/agentpack/hermes/demo/skills"), hermes["skills"]["external_dirs"])
+        self.assertIn(str(self.home / ".local/share/agentpack/hermes/mission-control/skills"), hermes["skills"]["external_dirs"])
         # global scope may not carry memory
         self.assertFalse((self.pkg / "memory" / "INDEX.md").exists())
 
