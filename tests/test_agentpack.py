@@ -76,7 +76,7 @@ class EndToEndTests(unittest.TestCase):
         (self.pkg / "connections" / "router.yaml").write_text("name: router\ntransport: http\nurl: https://new.test/mcp\nheaders:\n  X-Key: ${R_KEY}\ntools:\n  include: [a]\n")
         self.manifest = (self.pkg / "package.yaml").read_text().replace("connections: []", "connections:\n  - connections/router.yaml")
         (self.pkg / "package.yaml").write_text(self.manifest)
-        skill = self.pkg / ".agents" / "skills" / "hello"
+        self.skill = skill = self.pkg / ".agents" / "skills" / "hello"
         skill.mkdir()
         (skill / "SKILL.md").write_text("---\nname: hello\ndescription: Say hello.\n---\nhi\n")
         subprocess.run(["git", "-C", str(self.pkg), "add", "-A"], check=True, capture_output=True)
@@ -112,7 +112,7 @@ class EndToEndTests(unittest.TestCase):
 
         # drop the connection and the skill: prune removes exactly them, keeps the rest
         (self.pkg / "package.yaml").write_text(self.manifest.replace("connections:\n  - connections/router.yaml", "connections: []"))
-        shutil.rmtree(skill)
+        shutil.rmtree(self.skill)
         self.assertEqual(run("--home", str(self.home), "compile", "--package", str(self.pkg)), 0)
         hermes = yaml.safe_load((self.home / ".hermes" / "config.yaml").read_text())
         self.assertNotIn("router", hermes["mcp_servers"])
@@ -143,8 +143,9 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(codex_text.count("[mcp_servers.router]"), 1)
         hermes = yaml.safe_load((self.home / ".hermes" / "config.yaml").read_text())
         self.assertIn(str(self.home / ".local/share/agentpack/hermes/mission-control/skills"), hermes["skills"]["external_dirs"])
-        # global scope may not carry memory
-        self.assertFalse((self.pkg / "memory" / "INDEX.md").exists())
+        # global scope writes into the home, never project-scope artifacts into the repo
+        self.assertFalse((self.pkg / ".claude").exists())
+        self.assertFalse((self.pkg / ".mcp.json").exists())
 
     def test_memory_validation_reports_bad_records(self):
         (self.pkg / "memory" / "fact" / "bad.md").write_text("---\ntype: fact\nsubject: s\nextra: nope\n---\nx\n")
