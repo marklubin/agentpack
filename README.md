@@ -38,6 +38,12 @@ cp systemd/agentpack-sync.* ~/.config/systemd/user/
 systemctl --user enable --now agentpack-sync.timer
 ```
 
+## The `agentpack` skill
+
+This repository is itself a global-scope package that ships one skill, `agentpack`, covering
+how to manage the tool and its packages on a host. Add `~/agentpack` to the host manifest
+and every runtime gets it.
+
 ## Commands
 
 | Command | What it does |

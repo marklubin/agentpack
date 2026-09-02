@@ -1,0 +1,18 @@
+spec: 1
+name: agentpack
+version: 0.1.0
+scope: global
+sensitivity: public
+targets: [hermes, claude, codex, opencode]
+
+# The tool ships its own operating skill as a global package, so every host that runs
+# agentpack also knows how to manage it. Template forks do not carry this file.
+prompts:
+  contract: AGENTS.md
+
+skills:
+  dir: .agents/skills
+  include: all
+  exclude: []
+
+connections: []
