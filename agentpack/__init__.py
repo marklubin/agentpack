@@ -3,7 +3,7 @@
 __version__ = "0.1.0"
 
 SPEC_VERSION = 1
-TARGETS = ("hermes", "claude", "codex", "opencode")
+TARGETS = ("hermes", "claude", "codex", "opencode", "pi")
 SCOPES = ("project", "global")
 SENSITIVITIES = ("public", "personal", "sensitive", "highly-sensitive")
 

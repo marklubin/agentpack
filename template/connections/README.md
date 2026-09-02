@@ -12,7 +12,7 @@ headers:
   Authorization: ${EXAMPLE_TOKEN}
 tools:
   include: [search, fetch] # enforced natively by Hermes; policy text elsewhere
-targets: [hermes, claude, codex, opencode]
+targets: [hermes, claude, codex, opencode, pi]
 runtime_options:           # optional per-runtime passthrough keys
   hermes: { connect_timeout: 30 }
 ```

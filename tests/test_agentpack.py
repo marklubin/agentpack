@@ -60,7 +60,7 @@ class EndToEndTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="agentpack-test-"))
         self.home = self.tmp / "home"
-        for d in (".claude", ".codex", ".hermes", ".config/opencode"):
+        for d in (".claude", ".codex", ".hermes", ".config/opencode", ".pi/agent"):
             (self.home / d).mkdir(parents=True)
         (self.home / ".hermes" / "config.yaml").write_text("model:\n  default: m\nskills:\n  external_dirs:\n    - /keep/me\nmcp_servers:\n  other:\n    url: http://keep\n")
         (self.home / ".codex" / "config.toml").write_text('model = "x"\n\n[mcp_servers.router]\nurl = "https://old.test/mcp"\n\n[projects."/x"]\ntrust_level = "trusted"\n')
@@ -103,6 +103,7 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(oc["mcp"]["router"]["headers"], {"X-Key": "{env:R_KEY}"})
         mcp = json.loads((self.pkg / ".mcp.json").read_text())
         self.assertEqual(mcp["mcpServers"]["router"]["url"], "https://new.test/mcp")
+        self.assertFalse((self.pkg / ".pi").exists())  # pi reads AGENTS.md and .agents/skills natively
 
         # idempotent: nothing changes on a second run
         before = {p: p.read_bytes() for p in self.pkg.rglob("*") if p.is_file() and ".git/" not in str(p)}
@@ -143,6 +144,11 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(codex_text.count("[mcp_servers.router]"), 1)
         hermes = yaml.safe_load((self.home / ".hermes" / "config.yaml").read_text())
         self.assertIn(str(self.home / ".local/share/agentpack/hermes/mission-control/skills"), hermes["skills"]["external_dirs"])
+        pi_agents = (self.home / ".pi" / "agent" / "AGENTS.md").read_text()
+        self.assertEqual(pi_agents, "<!-- agentpack:mission-control:begin -->\n# Policy\nbe good\n<!-- agentpack:mission-control:end -->\n")
+        self.assertTrue((self.home / ".pi" / "agent" / "skills" / "hello" / "SKILL.md").is_file())
+        self.assertFalse((self.home / ".pi" / "agent" / "skills" / "hello" / "SKILL.md").is_symlink())
+        self.assertFalse((self.home / ".pi" / "mcp.json").exists())  # pi has no MCP runtime; connection is a note only
         # global scope writes into the home, never project-scope artifacts into the repo
         self.assertFalse((self.pkg / ".claude").exists())
         self.assertFalse((self.pkg / ".mcp.json").exists())

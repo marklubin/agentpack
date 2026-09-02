@@ -310,15 +310,15 @@ connection. Not v1.
 Every cell names a surface the runtime already has. "Native" means the package file is
 read as-is. Verified against the four homes on salinas on 2026-09-01.
 
-| Component | Hermes | Claude Code | Codex | OpenCode |
-|---|---|---|---|---|
-| Prompt, project | native `AGENTS.md` | `CLAUDE.md` with `@AGENTS.md` | native `AGENTS.md` | native `AGENTS.md` |
-| Prompt, global | marker block in `~/AGENTS.md` | marker block in `~/.claude/CLAUDE.md` | marker block in `~/.codex/AGENTS.md` | reads `~/.claude/CLAUDE.md`; write nothing |
-| Skills, project | native `.agents/skills` plus trust entry | copy to `.claude/skills/` | native `.agents/skills` | native `.agents/skills` |
-| Skills, global | `skills.external_dirs` entry | copy to `~/.claude/skills/` | copy to `~/.codex/skills/` | scans `~/.claude/skills`; write nothing |
-| Connection | `mcp_servers.<n>` in `config.yaml`, `${VAR}`, `tools.include`, auto-reload | `.mcp.json` or `~/.claude.json`, `${VAR}` | `[mcp_servers.<n>]` in `config.toml`, `env_http_headers` name map | `mcp.<n>` in `opencode.json`, `{env:VAR}`, `command` as one array |
-| Memory | contract in prompt block | contract in prompt block | contract in prompt block | contract in prompt block |
-| Reload | MCP auto; skills on next prompt build | new session | skills watched live; MCP restart | new session |
+| Component | Hermes | Claude Code | Codex | OpenCode | Pi |
+|---|---|---|---|---|---|
+| Prompt, project | native `AGENTS.md` | `CLAUDE.md` with `@AGENTS.md` | native `AGENTS.md` | native `AGENTS.md` | native `AGENTS.md` |
+| Prompt, global | marker block in `~/AGENTS.md` | marker block in `~/.claude/CLAUDE.md` | marker block in `~/.codex/AGENTS.md` | reads `~/.claude/CLAUDE.md`; write nothing | marker block in `~/.pi/agent/AGENTS.md` |
+| Skills, project | native `.agents/skills` plus trust entry | copy to `.claude/skills/` | native `.agents/skills` | native `.agents/skills` | native `.agents/skills` |
+| Skills, global | `skills.external_dirs` entry | copy to `~/.claude/skills/` | copy to `~/.codex/skills/` | scans `~/.claude/skills`; write nothing | copy to `~/.pi/agent/skills/` |
+| Connection | `mcp_servers.<n>` in `config.yaml`, `${VAR}`, `tools.include`, auto-reload | `.mcp.json` or `~/.claude.json`, `${VAR}` | `[mcp_servers.<n>]` in `config.toml`, `env_http_headers` name map | `mcp.<n>` in `opencode.json`, `{env:VAR}`, `command` as one array | none; rendered as a plan note |
+| Memory | contract in prompt block | contract in prompt block | contract in prompt block | contract in prompt block | contract in prompt block |
+| Reload | MCP auto; skills on next prompt build | new session | skills watched live; MCP restart | new session | new session |
 
 Cautions:
 
@@ -329,6 +329,8 @@ Cautions:
   trust record, and prunes both.
 - OpenCode reads Claude's home by default. Global scope writes to Claude only and lets
   OpenCode inherit, or OpenCode warns on duplicate names.
+- Pi core has no MCP support by design. A connection that wants pi produces a plan note
+  only; nothing is written for it.
 - Hermes MCP auto-reload invalidates the prompt cache. A sync run touches `config.yaml` at
   most once.
 - Hermes global instructions are cwd-discovered. `~/AGENTS.md` applies to sessions under

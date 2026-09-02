@@ -62,15 +62,15 @@ and every runtime gets it.
 
 ## What gets written where
 
-| Component | Hermes | Claude Code | Codex | OpenCode |
-|---|---|---|---|---|
-| Prompt, project scope | native `AGENTS.md` | `CLAUDE.md` containing `@AGENTS.md` | native `AGENTS.md` | native `AGENTS.md` |
-| Prompt, global scope | marker block in `~/AGENTS.md` | marker block in `~/.claude/CLAUDE.md` | marker block in `~/.codex/AGENTS.md` | reads Claude's file; nothing written |
-| Skills, project scope | native `.agents/skills` plus `skills.trusted_project_dirs` | copies in `.claude/skills/` (gitignored) | native | native |
-| Skills, global scope | copies under `~/.local/share/agentpack/hermes/<pkg>/skills` plus `skills.external_dirs` | copies in `~/.claude/skills/` | copies in `~/.codex/skills/` | reads Claude's; nothing written |
-| Connection | `mcp_servers.<name>` in `config.yaml` | `.mcp.json` or `~/.claude.json` | `[mcp_servers.<name>]` block in `config.toml` | `mcp.<name>` in `opencode.json` |
-| Memory | contract block in `AGENTS.md` plus a generated `remember` skill, same for every runtime | | | |
-| Cron skills (`hermes.cron_skills`) | each named skill dir added to `skills.external_dirs` so a cron job can attach it | n/a | n/a | n/a |
+| Component | Hermes | Claude Code | Codex | OpenCode | Pi |
+|---|---|---|---|---|---|
+| Prompt, project scope | native `AGENTS.md` | `CLAUDE.md` containing `@AGENTS.md` | native `AGENTS.md` | native `AGENTS.md` | native `AGENTS.md` |
+| Prompt, global scope | marker block in `~/AGENTS.md` | marker block in `~/.claude/CLAUDE.md` | marker block in `~/.codex/AGENTS.md` | reads Claude's file; nothing written | marker block in `~/.pi/agent/AGENTS.md` |
+| Skills, project scope | native `.agents/skills` plus `skills.trusted_project_dirs` | copies in `.claude/skills/` (gitignored) | native | native | native |
+| Skills, global scope | copies under `~/.local/share/agentpack/hermes/<pkg>/skills` plus `skills.external_dirs` | copies in `~/.claude/skills/` | copies in `~/.codex/skills/` | reads Claude's; nothing written | copies in `~/.pi/agent/skills/` |
+| Connection | `mcp_servers.<name>` in `config.yaml` | `.mcp.json` or `~/.claude.json` | `[mcp_servers.<name>]` block in `config.toml` | `mcp.<name>` in `opencode.json` | none; pi has no MCP runtime, rendered as a plan note |
+| Memory | contract block in `AGENTS.md` plus a generated `remember` skill, same for every runtime | | | | |
+| Cron skills (`hermes.cron_skills`) | each named skill dir added to `skills.external_dirs` so a cron job can attach it | n/a | n/a | n/a | n/a |
 
 Rules the tool holds itself to:
 

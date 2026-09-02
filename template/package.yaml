@@ -3,7 +3,7 @@ name: __PACKAGE_NAME__
 version: 0.1.0
 scope: project            # project | global
 sensitivity: personal     # public | personal | sensitive | highly-sensitive
-targets: [hermes, claude, codex, opencode]
+targets: [hermes, claude, codex, opencode, pi]
 
 prompts:
   contract: AGENTS.md
