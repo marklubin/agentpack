@@ -23,3 +23,9 @@ connections: []
 memory:
   schema: memory/schema.yaml
   reads_from: []
+
+# Skills that Hermes cron jobs attach by name. Hermes resolves those from its global
+# skill dirs, so agentpack registers each one there. The jobs themselves are created
+# with `hermes cron create`, never by agentpack.
+# hermes:
+#   cron_skills: [daily-report]

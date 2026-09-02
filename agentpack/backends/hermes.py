@@ -47,6 +47,10 @@ class HermesBackend(Backend):
                 p.yaml_list_items.add((config, ("skills", "external_dirs"), str(skills_home)))
         else:
             p.yaml_list_items.add((config, ("skills", "trusted_project_dirs"), str(pkg.root)))
+            # Hermes cron resolves a job's attached skill from the global skill dirs, not
+            # the workdir, so each declared cron skill gets its own external_dirs entry.
+            for name in pkg.hermes_cron_skills:
+                p.yaml_list_items.add((config, ("skills", "external_dirs"), str(pkg.skills_dir / name)))
         for c in pkg.connections:
             if c.wants("hermes"):
                 p.yaml_keys[(config, ("mcp_servers", c.name))] = mcp_entry(c)

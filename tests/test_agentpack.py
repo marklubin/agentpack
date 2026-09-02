@@ -167,6 +167,20 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(hermes["skills"].get("trusted_project_dirs"), [])
 
 
+class CronSkillTests(EndToEndTests):
+    def test_cron_skills_register_with_hermes_and_keep_the_package_name(self):
+        (self.pkg / "package.yaml").write_text(self.manifest + "hermes:\n  cron_skills: [hello]\n")
+        from agentpack.manifest import load_package
+        pkg = load_package(self.pkg)
+        self.assertEqual(pkg.name, "demo")
+        self.assertEqual(pkg.hermes_cron_skills, ["hello"])
+        self.assertEqual(run("--home", str(self.home), "compile", "--package", str(self.pkg), "--target", "hermes"), 0)
+        hermes = yaml.safe_load((self.home / ".hermes" / "config.yaml").read_text())
+        self.assertIn(str(self.pkg / ".agents" / "skills" / "hello"), hermes["skills"]["external_dirs"])
+        (self.pkg / "package.yaml").write_text(self.manifest + "hermes:\n  cron_skills: [missing]\n")
+        self.assertEqual(run("--home", str(self.home), "compile", "--package", str(self.pkg), "--target", "hermes"), 1)
+
+
 class BudgetTests(EndToEndTests):
     def test_refuses_to_write_over_hermes_cap_and_warns_on_native_file(self):
         cfg = self.home / ".hermes" / "config.yaml"

@@ -70,6 +70,7 @@ and every runtime gets it.
 | Skills, global scope | copies under `~/.local/share/agentpack/hermes/<pkg>/skills` plus `skills.external_dirs` | copies in `~/.claude/skills/` | copies in `~/.codex/skills/` | reads Claude's; nothing written |
 | Connection | `mcp_servers.<name>` in `config.yaml` | `.mcp.json` or `~/.claude.json` | `[mcp_servers.<name>]` block in `config.toml` | `mcp.<name>` in `opencode.json` |
 | Memory | contract block in `AGENTS.md` plus a generated `remember` skill, same for every runtime | | | |
+| Cron skills (`hermes.cron_skills`) | each named skill dir added to `skills.external_dirs` so a cron job can attach it | n/a | n/a | n/a |
 
 Rules the tool holds itself to:
 

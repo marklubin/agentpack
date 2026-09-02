@@ -37,6 +37,7 @@ class Package:
     connections: list[Connection]
     memory_schema: Path | None
     memory_reads_from: list[str]
+    hermes_cron_skills: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -166,6 +167,18 @@ def load_package(root: Path) -> Package:
     if not isinstance(reads_from, list) or any(not isinstance(r, str) for r in reads_from):
         errors.append("memory.reads_from must be a list of package names")
 
+    hermes = data.get("hermes") or {}
+    if not isinstance(hermes, dict):
+        errors.append("hermes must be a mapping")
+        hermes = {}
+    cron_skills = hermes.get("cron_skills") or []
+    if not isinstance(cron_skills, list) or any(not isinstance(x, str) for x in cron_skills):
+        errors.append("hermes.cron_skills must be a list of skill names")
+        cron_skills = []
+    for cron_skill in cron_skills:
+        if not (skills_dir / cron_skill / "SKILL.md").is_file():
+            errors.append(f"hermes.cron_skills: {cron_skill} has no SKILL.md under {skills_dir}")
+
     if errors:
         raise AgentpackError(f"{mpath}:\n  - " + "\n  - ".join(errors))
 
@@ -184,5 +197,6 @@ def load_package(root: Path) -> Package:
         connections=connections,
         memory_schema=memory_schema,
         memory_reads_from=list(reads_from),
+        hermes_cron_skills=list(cron_skills),
         warnings=warnings,
     )

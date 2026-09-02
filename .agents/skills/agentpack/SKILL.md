@@ -86,6 +86,14 @@ with `${VAR}` values, optional `tools.include`, `targets`, and `runtime_options`
 per-runtime passthrough keys. Two packages must not declare the same connection name for
 the same runtime; the global package owns shared servers.
 
+**Add a Hermes cron job for a project package**: write the skill under
+`.agents/skills/<name>/`, list it under `hermes: cron_skills:` in `package.yaml`, sync
+(this registers the skill dir with Hermes so cron can attach it), then create the job
+with `hermes cron create "<cron>" "<prompt>" --name … --skill <name> --workdir <repo>
+--model … --provider … --reasoning-effort … --deliver local`, set its `enabled_toolsets`
+in `~/.hermes/cron/jobs.json` under the `.jobs.lock` flock, and record the job in
+Mission Control's JOBS.md. agentpack never creates or enables jobs.
+
 **Add a memory type**: edit `memory/schema.yaml` (`name`, `fields`, `index`, `write:
 agent|approval`, `privacy`), then `agentpack memory render --package <dir>`. That
 regenerates the index, the `remember` skill, and the contract block. Records are
