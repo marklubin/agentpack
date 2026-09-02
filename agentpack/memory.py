@@ -206,10 +206,9 @@ def render_contract(schema: MemorySchema, root: Path, reads_from: list[tuple[str
         "## Memory for this package",
         "",
         f"Store: `{store_rel}/` in this repository. Read `{store_rel}/INDEX.md` before relying on prior facts.",
-        f"Write a record as one file at `{store_rel}/<type>/<slug>.md` with the frontmatter template below.",
+        f"Write a record as one file at `{store_rel}/<type>/<slug>.md` with `type` and the fields in frontmatter.",
         "Never edit `INDEX.md`; it is regenerated. Do not write types not listed here.",
-        "Search: skim the index, then `grep -ril <term> " + str(store_rel) + "/<type>/`, then read one record.",
-        "The `remember` skill has the full procedure.",
+        "The `remember` skill has the templates, search steps, and full procedure.",
         "",
         "| type | fields | write |",
         "|---|---|---|",
@@ -224,21 +223,6 @@ def render_contract(schema: MemorySchema, root: Path, reads_from: list[tuple[str
         lines.append("Read-only memory from other packages:")
         for name, path in reads_from:
             lines.append(f"- {name}: `{path}/INDEX.md`")
-    lines += [
-        "",
-        "Template:",
-        "",
-        "```",
-        "---",
-        "type: <type>",
-    ]
-    example = schema.types[0] if schema.types else None
-    if example:
-        for f in example.fields:
-            if f in ("fact", "lesson", "reason"):
-                continue
-            lines.append(f"{f}: ")
-    lines += ["---", "<one record, one to three sentences>", "```"]
     return "\n".join(lines) + "\n"
 
 
