@@ -5,6 +5,7 @@ from __future__ import annotations
 from ..connections import Connection
 from ..manifest import Package
 from ..plan import Plan
+from ..util import body_without_frontmatter
 from .base import LEGACY_MARKERS, Backend, Context, global_prompt_body, marker_id
 
 
@@ -56,4 +57,25 @@ class HermesBackend(Backend):
                 p.yaml_keys[(config, ("mcp_servers", c.name))] = mcp_entry(c)
                 if not pkg.is_global:
                     p.notes.append(f"hermes: connection {c.name} is registered globally; Hermes has no per-project MCP config")
+        # Explicit named homes receive this global package's shared wiring.
+        # Never clone private state, credentials, cron jobs, or another package.
+        shared_keys = list(p.yaml_keys.items())
+        shared_lists = list(p.yaml_list_items)
+        for name, spec in pkg.hermes_profiles.items():
+            profile_home = ctx.home / ".hermes"
+            if name != "default":
+                profile_home = profile_home / "profiles" / name
+                profile_config = profile_home / "config.yaml"
+                for (_, keys), value in shared_keys:
+                    p.yaml_keys[(profile_config, keys)] = value
+                for _, keys, value in shared_lists:
+                    p.yaml_list_items.add((profile_config, keys, value))
+            else:
+                profile_config = config
+            if spec.get("soul"):
+                p.files[profile_home / "SOUL.md"] = body_without_frontmatter(
+                    (pkg.root / spec["soul"]).read_text(encoding="utf-8")
+                )
+            for key, value in spec.get("settings", {}).items():
+                p.yaml_keys[(profile_config, tuple(key.split(".")))] = value
         return p

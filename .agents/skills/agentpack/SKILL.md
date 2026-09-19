@@ -94,6 +94,13 @@ with `hermes cron create "<cron>" "<prompt>" --name … --skill <name> --workdir
 in `~/.hermes/cron/jobs.json` under the `.jobs.lock` flock, and record the job in
 Mission Control's JOBS.md. agentpack never creates or enables jobs.
 
+**Project a Hermes profile**: global packages can declare `hermes.profiles` keyed by
+`default` or a safe native profile name, with `soul: <package-relative-path>` and optional
+`settings` (`model.default`, `model.provider`, `agent.reasoning_effort`, `agent.max_turns`,
+`agent.run_budget_seconds`). Sync shares only that package's MCPs and global skill directory
+with each named home. SOUL is a managed file; explicitly back up an existing unmanaged
+SOUL before adoption. Credentials, sessions, schedules and activation stay outside sync.
+
 **Add a memory type**: edit `memory/schema.yaml` (`name`, `fields`, `index`, `write:
 agent|approval`, `privacy`), then `agentpack memory render --package <dir>`. That
 regenerates the index, the `remember` skill, and the contract block. Records are

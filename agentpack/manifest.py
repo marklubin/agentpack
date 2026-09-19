@@ -38,6 +38,7 @@ class Package:
     memory_schema: Path | None
     memory_reads_from: list[str]
     hermes_cron_skills: list[str] = field(default_factory=list)
+    hermes_profiles: dict[str, dict] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -179,6 +180,44 @@ def load_package(root: Path) -> Package:
         if not (skills_dir / cron_skill / "SKILL.md").is_file():
             errors.append(f"hermes.cron_skills: {cron_skill} has no SKILL.md under {skills_dir}")
 
+    profiles = hermes.get("profiles") or {}
+    if not isinstance(profiles, dict):
+        errors.append("hermes.profiles must be a mapping")
+        profiles = {}
+    if profiles and scope != "global":
+        errors.append("hermes.profiles requires global scope")
+    allowed_settings = {
+        "model.default": str, "model.provider": str,
+        "agent.reasoning_effort": str, "agent.max_turns": int,
+        "agent.run_budget_seconds": int,
+    }
+    for profile, spec in profiles.items():
+        if not isinstance(profile, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", profile):
+            errors.append("hermes.profiles names must be safe profile identifiers")
+            continue
+        if not isinstance(spec, dict) or set(spec) - {"soul", "settings"}:
+            errors.append(f"hermes.profiles.{profile}: only soul and settings are supported")
+            continue
+        if "soul" in spec:
+            value = spec["soul"]
+            path = (root / value).resolve() if isinstance(value, str) else root
+            if not path.is_relative_to(root) or not path.is_file():
+                errors.append(f"hermes.profiles.{profile}.soul must name a file inside the package")
+        settings = spec.get("settings", {})
+        if not isinstance(settings, dict):
+            errors.append(f"hermes.profiles.{profile}.settings must be a mapping")
+            continue
+        for key, value in settings.items():
+            expected = allowed_settings.get(key)
+            if expected is None or type(value) is not expected:
+                errors.append(f"hermes.profiles.{profile}: unsupported setting or type: {key}")
+            elif expected is int and value <= 0:
+                errors.append(f"hermes.profiles.{profile}.{key} must be positive")
+            elif key == "agent.reasoning_effort" and value not in {"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"}:
+                errors.append(f"hermes.profiles.{profile}: invalid reasoning effort")
+            elif expected is str and not value.strip():
+                errors.append(f"hermes.profiles.{profile}.{key} must not be empty")
+
     if errors:
         raise AgentpackError(f"{mpath}:\n  - " + "\n  - ".join(errors))
 
@@ -198,5 +237,6 @@ def load_package(root: Path) -> Package:
         memory_schema=memory_schema,
         memory_reads_from=list(reads_from),
         hermes_cron_skills=list(cron_skills),
+        hermes_profiles=profiles,
         warnings=warnings,
     )

@@ -87,6 +87,35 @@ Rules the tool holds itself to:
 - Every edit to a runtime config is validated by re-parsing before it is written, and a
   `.bak-agentpack` copy of the previous file sits beside it.
 
+## Hermes profile projections
+
+Global packages may explicitly target named native Hermes homes alongside `default`:
+
+```yaml
+hermes:
+  profiles:
+    default:
+      soul: prompts/conversation.md
+      settings:
+        agent.reasoning_effort: low
+    worker:
+      soul: prompts/worker.md
+      settings:
+        agent.reasoning_effort: medium
+        agent.max_turns: 60
+        agent.run_budget_seconds: 900
+```
+
+Each named profile receives that package's global skills and MCP connections, plus the
+specified SOUL and settings. Supported settings are `model.default`, `model.provider`,
+`agent.reasoning_effort`, `agent.max_turns`, and `agent.run_budget_seconds`. Profile names
+and prompt paths are validated; SOUL files must fit the profile's context cap. Existing
+unmanaged SOUL files must be backed up and removed explicitly before adoption. The compiler
+preserves other settings, credentials, sessions and cron. Removing a declaration prunes
+only its recorded files/keys. This does not create a gateway route, activate a profile,
+copy another package, or grant delegation authority. Provision credentials locally and
+start a fresh session after sync.
+
 ## Memory
 
 `memory/schema.yaml` declares types. Records are one Markdown file each under

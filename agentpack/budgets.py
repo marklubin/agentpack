@@ -62,6 +62,18 @@ def check_budgets(pkg: Package, target: str, plan: Plan, home: Path) -> list[tup
                     f"{target} or drop {target} from their targets.",
                 )
             )
+    for path, body in plan.files.items():
+        if target != "hermes" or path.name != "SOUL.md":
+            continue
+        cfg_path = path.parent / "config.yaml"
+        profile_cap = cap
+        if cfg_path.is_file():
+            cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            value = cfg.get("context_file_max_chars")
+            if type(value) is int and value > 0:
+                profile_cap = value
+        if len(body) > profile_cap:
+            out.append(("error", f"hermes: {path} exceeds its {profile_cap}-char context-file cap. Not written."))
     if not pkg.is_global and pkg.contract.is_file():
         size = len(pkg.contract.read_text(encoding="utf-8"))
         if size > cap:
