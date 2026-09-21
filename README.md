@@ -54,7 +54,7 @@ and every runtime gets it.
 | `agentpack new DIR [--from URL]` | Create a package from the built-in template or a template repository |
 | `agentpack init [DIR]` | Add the package layout to an existing repository without overwriting |
 | `agentpack validate --package DIR` | Check the manifest, skills, connections, and memory records |
-| `agentpack compile --package DIR [--target T] [--dry-run --diff]` | Compile one package into this host's runtimes |
+| `agentpack compile --package DIR [--target T] [--dry-run --diff]` | Compile one package into this host's runtimes. `--target` is the complete set to keep: any other target the package previously had compiled here is pruned, so preview with `--dry-run` first |
 | `agentpack sync [--dry-run --diff]` | Fetch every pinned ref, fast-forward, compile, prune |
 | `agentpack status` | Compiled packages and drift between checkout and compiled commit |
 | `agentpack memory validate\|render --package DIR` | Validate records, regenerate the index, contract block, and `remember` skill |
@@ -69,6 +69,7 @@ and every runtime gets it.
 | Skills, project scope | native `.agents/skills` plus `skills.trusted_project_dirs` | copies in `.claude/skills/` (gitignored) | native | native | native |
 | Skills, global scope | copies under `~/.local/share/agentpack/hermes/<pkg>/skills` plus `skills.external_dirs` | copies in `~/.claude/skills/` | copies in `~/.codex/skills/` | reads Claude's; nothing written | copies in `~/.pi/agent/skills/` |
 | Connection | `mcp_servers.<name>` in `config.yaml` | `.mcp.json` or `~/.claude.json` | `[mcp_servers.<name>]` block in `config.toml` | `mcp.<name>` in `opencode.json` | none; pi has no MCP runtime, rendered as a plan note |
+| Host files, global scope | n/a, no backend yet | n/a, no backend yet | n/a, no backend yet | n/a, no backend yet | copies to the `dest` path in the package manifest, e.g. `~/.pi/agent/extensions/` |
 | Memory | contract block in `AGENTS.md` plus a generated `remember` skill, same for every runtime | | | | |
 | Cron skills (`hermes.cron_skills`) | each named skill dir added to `skills.external_dirs` so a cron job can attach it | n/a | n/a | n/a | n/a |
 

@@ -124,6 +124,8 @@ def compile_package(
     # targets that were compiled before but are no longer wanted: prune everything
     for target in list(state.package(pkg.name)["targets"]):
         if target not in wanted:
+            if targets:
+                changes.append(Change("note", f"{pkg.name}/{target}", "outside --target; everything it owned is pruned"))
             app = Applier(Plan(), state.target(pkg.name, target), dry_run)
             app.run()
             changes.extend(app.changes)
@@ -249,7 +251,8 @@ def cmd_validate(args) -> int:
             print(f"error: memory: {e}")
     print(
         f"{pkg.name} {pkg.version} ({pkg.scope}, {pkg.sensitivity}): "
-        f"{len(skills)} skills, {len(pkg.connections)} connections, targets {', '.join(pkg.targets)}"
+        f"{len(skills)} skills, {len(pkg.connections)} connections, {len(pkg.host_files)} host files, "
+        f"targets {', '.join(pkg.targets)}"
     )
     return 1 if errors else 0
 

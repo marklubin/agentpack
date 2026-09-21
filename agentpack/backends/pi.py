@@ -1,10 +1,10 @@
-"""Pi: native AGENTS.md and .agents/skills; global marker block + skill copies; no MCP."""
+"""Pi: native AGENTS.md and .agents/skills; global marker block + skill copies; host files; no MCP."""
 
 from __future__ import annotations
 
 from ..manifest import Package
 from ..plan import Plan
-from .base import LEGACY_MARKERS, Backend, Context, global_prompt_body, marker_id
+from .base import LEGACY_MARKERS, Backend, Context, add_host_files, global_prompt_body, marker_id
 
 
 class PiBackend(Backend):
@@ -19,6 +19,7 @@ class PiBackend(Backend):
                 p.block(ctx.home / ".pi" / "agent" / "AGENTS.md", "html", mid, body, "top", LEGACY_MARKERS.get(pkg.name, ()))
             for s in ctx.skills:
                 p.dirs[ctx.home / ".pi" / "agent" / "skills" / s.name] = s.path
+            add_host_files(p, pkg, ctx, "pi")
         for c in pkg.connections:
             if c.wants("pi"):
                 p.notes.append(f"pi: {c.name} connection skipped; pi has no MCP runtime")

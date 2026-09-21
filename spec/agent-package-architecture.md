@@ -188,6 +188,11 @@ skills:
 connections:
   - connections/oxnard.yaml
 
+host_files:
+  - path: identity/harness/pi/escape-clears-input.ts
+    dest: .pi/agent/extensions/escape-clears-input.ts   # relative to the runtime home
+    targets: [pi]
+
 memory:
   schema: memory/schema.yaml
   reads_from: []          # other package names, explicit allowlist
@@ -247,6 +252,27 @@ tools:
 Compiles to each runtime's own MCP config in its own spelling. `tools.include` is enforced
 natively only by Hermes. For the other three the compiler renders the allowlist into the
 prompt block as policy text and says so in the compile report.
+
+### Host files
+
+Some behavior lives in a runtime's own config rather than in prompts or skills: a pi
+extension, a keybinding file. `host_files` copies those verbatim into a runtime's home.
+
+```yaml
+host_files:
+  - path: identity/harness/pi/escape-clears-input.ts
+    dest: .pi/agent/extensions/escape-clears-input.ts
+    targets: [pi]
+```
+
+- `dest` is relative to the runtime home and may not be absolute or escape it. Global
+  scope only; a project package has no runtime home to write into.
+- The copy is byte-exact, so the file in the package is the file the runtime loads.
+  Ownership follows `Plan.files`: content changes are rewritten, a dropped entry is
+  pruned, and a destination that already exists with different content is refused rather
+  than overwritten.
+- pi is the only backend that honors host files today. Declaring another target is a
+  manifest error, not a silent no-op.
 
 ### Memory
 

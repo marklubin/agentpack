@@ -51,3 +51,15 @@ class Backend:
 
     def plan(self, pkg: Package, ctx: Context) -> Plan:  # pragma: no cover - interface
         raise NotImplementedError
+
+
+def add_host_files(p: Plan, pkg: Package, ctx: Context, target: str) -> None:
+    """Copy the package's host files for this runtime into the host home.
+
+    Ownership and prune come from Plan.files, so a file the tool did not write is never
+    deleted. A destination that already exists with different content is an error: the
+    operator removes it or adopts it by hand.
+    """
+    for hf in pkg.host_files:
+        if target in hf.targets:
+            p.files[ctx.home / hf.dest] = hf.path.read_text(encoding="utf-8")

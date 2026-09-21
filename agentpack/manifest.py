@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import yaml
 
@@ -22,6 +22,20 @@ class Fragment:
 
 
 @dataclass
+class HostFile:
+    """A package file copied verbatim into a runtime's home."""
+
+    path: Path
+    dest: str  # relative to the runtime home
+    targets: list[str]
+
+
+# Runtimes whose backend honors host_files. A target listed without a backend here is
+# a manifest error rather than a silent no-op.
+HOST_FILE_TARGETS = ("pi",)
+
+
+@dataclass
 class Package:
     root: Path
     name: str
@@ -35,6 +49,7 @@ class Package:
     skills_include: list[str] | None  # None means all
     skills_exclude: list[str]
     connections: list[Connection]
+    host_files: list[HostFile]
     memory_schema: Path | None
     memory_reads_from: list[str]
     hermes_cron_skills: list[str] = field(default_factory=list)
@@ -153,6 +168,36 @@ def load_package(root: Path) -> Package:
             errors.append(f"duplicate connection name: {c.name}")
         seen.add(c.name)
 
+    host_files: list[HostFile] = []
+    for i, hf in enumerate(data.get("host_files") or []):
+        if not isinstance(hf, dict) or not isinstance(hf.get("path"), str):
+            errors.append(f"host_files[{i}] must have a path")
+            continue
+        hfpath = root / hf["path"]
+        if not hfpath.is_file():
+            errors.append(f"host_files[{i}] not found: {hf['path']}")
+        dest = hf.get("dest")
+        if not isinstance(dest, str) or not dest:
+            errors.append(f"host_files[{i}] must have a dest relative to the runtime home")
+            continue
+        dest_parts = PurePosixPath(dest).parts
+        if PurePosixPath(dest).is_absolute() or ".." in dest_parts or "." in dest_parts:
+            errors.append(f"host_files[{i}].dest must be a plain relative path inside the runtime home")
+            continue
+        if scope != "global":
+            errors.append(f"host_files[{i}]: host files are only supported for global scope")
+        hftargets = hf.get("targets") or list(targets if isinstance(targets, list) else TARGETS)
+        if not isinstance(hftargets, list) or any(t not in TARGETS for t in hftargets):
+            errors.append(f"host_files[{i}].targets must be a subset of {list(TARGETS)}")
+        else:
+            unsupported = [t for t in hftargets if t not in HOST_FILE_TARGETS]
+            if unsupported:
+                errors.append(
+                    f"host_files[{i}].targets: no host-file backend for {', '.join(unsupported)} "
+                    f"(supported: {', '.join(HOST_FILE_TARGETS)})"
+                )
+        host_files.append(HostFile(path=hfpath, dest=dest, targets=list(hftargets)))
+
     memory = data.get("memory") or {}
     if not isinstance(memory, dict):
         errors.append("memory must be a mapping")
@@ -234,6 +279,7 @@ def load_package(root: Path) -> Package:
         skills_include=skills_include,
         skills_exclude=list(skills_exclude),
         connections=connections,
+        host_files=host_files,
         memory_schema=memory_schema,
         memory_reads_from=list(reads_from),
         hermes_cron_skills=list(cron_skills),

@@ -66,7 +66,9 @@ class EndToEndTests(unittest.TestCase):
         (self.home / ".codex" / "config.toml").write_text('model = "x"\n\n[mcp_servers.router]\nurl = "https://old.test/mcp"\n\n[projects."/x"]\ntrust_level = "trusted"\n')
         (self.home / ".claude" / "CLAUDE.md").write_text("<!-- mission-control:global-agent-instructions:begin -->\nold\n<!-- mission-control:global-agent-instructions:end -->\n\n# Global Rules\nkeep\n")
         (self.home / ".claude.json").write_text('{"mcpServers": {"router": {"type": "http", "url": "https://old.test/mcp"}}, "other": 1}')
-        self.pkg = self.tmp / "pkg"
+        # resolved, because macOS tempdirs live under the /private symlink and agentpack
+        # records resolved paths in runtime config (hermes skills.trusted_project_dirs)
+        self.pkg = (self.tmp / "pkg").resolve()
         self.assertEqual(run("new", str(self.pkg), "--name", "demo"), 0)
         (self.pkg / "memory" / "schema.yaml").write_text(
             "store: memory\ntypes:\n  - name: fact\n    fields: [subject, fact, source, observed_at]\n    index: [fact, source]\n    write: agent\n    privacy: personal\n"
@@ -171,6 +173,126 @@ class EndToEndTests(unittest.TestCase):
         hermes = yaml.safe_load((self.home / ".hermes" / "config.yaml").read_text())
         self.assertNotIn("router", hermes["mcp_servers"])
         self.assertEqual(hermes["skills"].get("trusted_project_dirs"), [])
+
+
+class HostFileTests(EndToEndTests):
+    DEST = ".pi/agent/extensions/escape-clears-input.ts"
+
+    def global_manifest(self, host_files: str) -> str:
+        return (
+            "spec: 1\nname: harness\nversion: 1.0.0\nscope: global\nsensitivity: personal\n"
+            "prompts:\n  contract: AGENTS.md\n" + host_files
+        )
+
+    def entry(self, src: str = ".agents/harness/escape-clears-input.ts") -> str:
+        return f"host_files:\n  - path: {src}\n    dest: {self.DEST}\n    targets: [pi]\n"
+
+    def setUp(self):
+        super().setUp()
+        self.src = self.pkg / ".agents" / "harness" / "escape-clears-input.ts"
+        self.src.parent.mkdir(parents=True, exist_ok=True)
+        self.src.write_text("export default () => {};\n")
+        self.dest = self.home / self.DEST
+
+    def compile(self, *extra: str) -> int:
+        return run("--home", str(self.home), "compile", "--package", str(self.pkg), *extra)
+
+    def test_copies_adopts_overwrites_dry_runs_and_prunes(self):
+        # a hand-placed identical file is adopted rather than refused
+        self.dest.parent.mkdir(parents=True)
+        self.dest.write_text("export default () => {};\n")
+        (self.pkg / "package.yaml").write_text(self.global_manifest(self.entry()))
+        self.assertEqual(self.compile(), 0)
+        self.assertEqual(self.dest.read_text(), "export default () => {};\n")
+
+        # idempotent, and the copy is owned
+        self.assertEqual(self.compile(), 0)
+        state = json.loads((self.home / ".local/state/agentpack/state.json").read_text())
+        self.assertIn(str(self.dest), state["packages"]["harness"]["targets"]["pi"]["files"])
+
+        # a hand-placed file with different content is refused, never overwritten
+        other = self.home / ".pi/agent/extensions" / "hand-rolled.ts"
+        hand_rolled = self.pkg / ".agents/harness/hand-rolled.ts"
+        (self.pkg / "package.yaml").write_text(
+            self.global_manifest(self.entry() + "  - path: .agents/harness/hand-rolled.ts\n    dest: .pi/agent/extensions/hand-rolled.ts\n    targets: [pi]\n")
+        )
+        hand_rolled.write_text("mine\n")
+        other.write_text("yours\n")
+        self.assertEqual(self.compile(), 1)
+        self.assertEqual(other.read_text(), "yours\n")
+
+        # the refused entry is not left in the manifest for the rest of this test
+        (self.pkg / "package.yaml").write_text(self.global_manifest(self.entry()))
+        hand_rolled.unlink()
+
+        # owned content changes are rewritten; --dry-run reports without writing
+        self.src.write_text("export default () => 2;\n")
+        self.assertEqual(self.compile("--dry-run", "--diff"), 0)
+        self.assertEqual(self.dest.read_text(), "export default () => {};\n")
+        self.assertEqual(self.compile(), 0)
+        self.assertEqual(self.dest.read_text(), "export default () => 2;\n")
+
+        # dropping the manifest entry prunes the copy
+        (self.pkg / "package.yaml").write_text(self.global_manifest(""))
+        self.assertEqual(self.compile(), 0)
+        self.assertFalse(self.dest.exists())
+        self.assertTrue(other.exists())  # the file agentpack never wrote
+
+    def test_an_explicit_target_prunes_the_targets_it_leaves_out(self):
+        (self.pkg / "prompts").mkdir()
+        (self.pkg / "prompts" / "policy.md").write_text("# Policy\nbe good\n")
+        (self.pkg / "package.yaml").write_text(
+            "spec: 1\nname: harness\nversion: 1.0.0\nscope: global\nsensitivity: personal\n"
+            "prompts:\n  contract: AGENTS.md\n  fragments:\n    - path: prompts/policy.md\n"
+            + self.entry()
+        )
+        self.assertEqual(self.compile(), 0)
+        self.assertTrue((self.home / ".pi/agent/AGENTS.md").is_file())
+        self.assertIn("# Policy", (self.home / ".claude/CLAUDE.md").read_text())
+        self.assertTrue((self.home / ".claude/skills/hello").is_dir())
+
+        # --target is the whole set to keep: the other compiled targets are pruned, so a
+        # preview comes first and the note in the plan names the reason
+        self.assertEqual(self.compile("--target", "pi", "--dry-run"), 0)
+        self.assertIn("# Policy", (self.home / ".claude/CLAUDE.md").read_text())
+        self.assertEqual(self.compile("--target", "pi"), 0)
+        self.assertTrue(self.dest.is_file())
+        self.assertNotIn("agentpack:harness", (self.home / ".claude/CLAUDE.md").read_text())
+        self.assertFalse((self.home / ".claude/skills/hello").exists())
+
+    def test_manifest_rejects_unsupported_targets_escapes_and_project_scope(self):
+        from agentpack.manifest import load_package
+
+        cases = {
+            "bad target": self.entry().replace("targets: [pi]", "targets: [claude]"),
+            "absolute dest": self.entry().replace(self.DEST, "/etc/passwd"),
+            "escaping dest": self.entry().replace(self.DEST, "../outside.ts"),
+            "missing source": self.entry(src=".agents/harness/nope.ts"),
+        }
+        for name, block in cases.items():
+            with self.subTest(name):
+                (self.pkg / "package.yaml").write_text(self.global_manifest(block))
+                with self.assertRaises(AgentpackError):
+                    load_package(self.pkg)
+
+        project = (
+            "spec: 1\nname: harness\nversion: 1.0.0\nscope: project\nsensitivity: personal\n"
+            "prompts:\n  contract: AGENTS.md\n" + self.entry()
+        )
+        (self.pkg / "package.yaml").write_text(project)
+        with self.assertRaises(AgentpackError):
+            load_package(self.pkg)
+
+    def test_a_sync_prune_removes_the_copy(self):
+        cfg = self.home / ".config" / "agentpack"
+        cfg.mkdir(parents=True)
+        (cfg / "packages.yaml").write_text(f"packages:\n  - path: {self.pkg}\n    targets: [pi]\n")
+        (self.pkg / "package.yaml").write_text(self.global_manifest(self.entry()))
+        self.assertEqual(run("--home", str(self.home), "sync"), 0)
+        self.assertTrue(self.dest.is_file())
+        (cfg / "packages.yaml").write_text("packages: []\n")
+        self.assertEqual(run("--home", str(self.home), "sync"), 0)
+        self.assertFalse(self.dest.exists())
 
 
 class CronSkillTests(EndToEndTests):

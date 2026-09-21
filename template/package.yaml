@@ -20,6 +20,13 @@ skills:
 connections: []
   # - connections/example.yaml
 
+# Whole files copied verbatim into a runtime's home. Global scope only. `dest` is
+# relative to the home; pi is the only runtime with a host-file backend today.
+host_files: []
+  # - path: identity/harness/pi/example.ts
+  #   dest: .pi/agent/extensions/example.ts
+  #   targets: [pi]
+
 memory:
   schema: memory/schema.yaml
   reads_from: []
